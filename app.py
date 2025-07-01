@@ -14,7 +14,8 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS urls
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   original_url TEXT NOT NULL,
-                  short_code TEXT NOT NULL UNIQUE)''')
+                  short_code TEXT NOT NULL UNIQUE,
+                  clicks INTEGER DEFAULT 0)''')
     conn.commit()
     conn.close()
 
@@ -49,7 +50,7 @@ def index():
                 if not c.fetchone():
                     break
                 short_code = generate_short_code()
-            c.execute('INSERT INTO urls (original_url, short_code) VALUES (?, ?)',
+            c.execute('INSERT INTO urls (original_url, short_code, clicks) VALUES (?, ?, 0)',
                       (original_url, short_code))
             conn.commit()
         
@@ -59,18 +60,20 @@ def index():
     
     return render_template('index.html')
 
-# Redirect short URL to original
+# Redirect short URL to original and increment clicks
 @app.route('/<short_code>')
 def redirect_url(short_code):
     conn = sqlite3.connect('shortener.db')
     c = conn.cursor()
     c.execute('SELECT original_url FROM urls WHERE short_code = ?', (short_code,))
     result = c.fetchone()
-    conn.close()
-    
     if result:
+        c.execute('UPDATE urls SET clicks = clicks + 1 WHERE short_code = ?', (short_code,))
+        conn.commit()
+        conn.close()
         return redirect(result[0])
     else:
+        conn.close()
         flash('Short URL not found.', 'error')
         return redirect(url_for('index'))
 
@@ -79,7 +82,7 @@ def redirect_url(short_code):
 def admin():
     conn = sqlite3.connect('shortener.db')
     c = conn.cursor()
-    c.execute('SELECT original_url, short_code FROM urls')
+    c.execute('SELECT original_url, short_code, clicks FROM urls')
     urls = c.fetchall()
     conn.close()
     return render_template('admin.html', urls=urls)
