@@ -11,12 +11,13 @@
         <a href="{{ url_for('index') }}">Back to Home</a>
         {% if urls %}
             <table>
-                <tr><th>Original URL</th><th>Short URL</th><th>Clicks</th></tr>
-                {% for original_url, short_code, clicks in urls %}
+                <tr><th>Original URL</th><th>Short URL</th><th>Clicks</th><th>Created At</th></tr>
+                {% for original_url, short_code, clicks, created_at in urls %}
                     <tr>
                         <td>{{ original_url }}</td>
                         <td><a href="{{ url_for('redirect_url', short_code=short_code, _external=True) }}">{{ url_for('redirect_url', short_code=short_code, _external=True) }}</a></td>
                         <td>{{ clicks }}</td>
+                        <td>{{ created_at }}</td>
                     </tr>
                 {% endfor %}
             </table>

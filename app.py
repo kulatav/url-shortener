@@ -3,6 +3,7 @@ import sqlite3
 import string
 import random
 import validators
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"  # For flash messages
@@ -15,7 +16,8 @@ def init_db():
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   original_url TEXT NOT NULL,
                   short_code TEXT NOT NULL UNIQUE,
-                  clicks INTEGER DEFAULT 0)''')
+                  clicks INTEGER DEFAULT 0,
+                  created_at TEXT)''')
     conn.commit()
     conn.close()
 
@@ -50,8 +52,8 @@ def index():
                 if not c.fetchone():
                     break
                 short_code = generate_short_code()
-            c.execute('INSERT INTO urls (original_url, short_code, clicks) VALUES (?, ?, 0)',
-                      (original_url, short_code))
+            c.execute('INSERT INTO urls (original_url, short_code, clicks, created_at) VALUES (?, ?, 0, ?)',
+                      (original_url, short_code, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
             conn.commit()
         
         conn.close()
@@ -82,7 +84,7 @@ def redirect_url(short_code):
 def admin():
     conn = sqlite3.connect('shortener.db')
     c = conn.cursor()
-    c.execute('SELECT original_url, short_code, clicks FROM urls')
+    c.execute('SELECT original_url, short_code, clicks, created_at FROM urls')
     urls = c.fetchall()
     conn.close()
     return render_template('admin.html', urls=urls)
