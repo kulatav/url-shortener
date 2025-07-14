@@ -5,7 +5,7 @@ A simple Python web application built with Flask to shorten URLs and redirect to
 ## Features
 - Shorten long URLs via a web form.
 - Redirect from short URLs to original URLs.
-- View all shortened URLs with click counts and creation timestamps in an admin page.
+- View all shortened URLs with click counts, creation timestamps, and expiration status in an admin page.
 - Input validation for URLs.
 - Persistent storage using SQLite.
 
@@ -37,5 +37,5 @@ A simple Python web application built with Flask to shorten URLs and redirect to
 ## Demo
 ![URL SHORTENER Demo](url-shortener-demo.gif)
 
-## License
+## License  
 MIT License
