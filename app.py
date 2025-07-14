@@ -3,7 +3,7 @@ import sqlite3
 import string
 import random
 import validators
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"  # For flash messages
@@ -67,13 +67,20 @@ def index():
 def redirect_url(short_code):
     conn = sqlite3.connect('shortener.db')
     c = conn.cursor()
-    c.execute('SELECT original_url FROM urls WHERE short_code = ?', (short_code,))
+    c.execute('SELECT original_url, created_at FROM urls WHERE short_code = ?', (short_code,))
     result = c.fetchone()
     if result:
+        original_url, created_at = result
+        # Check if URL is expired (30 days)
+        created_time = datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S')
+        if datetime.now() - created_time > timedelta(days=30):
+            conn.close()
+            flash('This URL has expired.', 'error')
+            return redirect(url_for('index'))
         c.execute('UPDATE urls SET clicks = clicks + 1 WHERE short_code = ?', (short_code,))
         conn.commit()
         conn.close()
-        return redirect(result[0])
+        return redirect(original_url)
     else:
         conn.close()
         flash('Short URL not found.', 'error')
@@ -86,8 +93,14 @@ def admin():
     c = conn.cursor()
     c.execute('SELECT original_url, short_code, clicks, created_at FROM urls')
     urls = c.fetchall()
+    # Add expiration status
+    urls_with_status = [
+        (original_url, short_code, clicks, created_at,
+         'Expired' if datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S') < datetime.now() - timedelta(days=30) else 'Active')
+        for original_url, short_code, clicks, created_at in urls
+    ]
     conn.close()
-    return render_template('admin.html', urls=urls)
+    return render_template('admin.html', urls=urls_with_status)
 
 if __name__ == '__main__':
     init_db()

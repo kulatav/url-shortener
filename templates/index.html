@@ -21,6 +21,7 @@
         </form>
         {% if short_url %}
             <p>Shortened URL: <a href="{{ short_url }}" target="_blank">{{ short_url }}</a></p>
+            <p>Note: This URL will expire 30 days after creation.</p>
         {% endif %}
         <p><a href="{{ url_for('admin') }}">View all URLs</a></p>
     </div>
