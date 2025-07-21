@@ -17,11 +17,12 @@
         {% endwith %}
         <form method="POST">
             <input type="url" name="url" placeholder="Enter URL to shorten" required>
+            <input type="number" name="expiration_days" placeholder="Expiration days (1-90)" min="1" max="90" value="30">
             <button type="submit">Shorten</button>
         </form>
         {% if short_url %}
             <p>Shortened URL: <a href="{{ short_url }}" target="_blank">{{ short_url }}</a></p>
-            <p>Note: This URL will expire 30 days after creation.</p>
+            <p>This URL will expire in {{ expiration_days }} days.</p>
         {% endif %}
         <p><a href="{{ url_for('admin') }}">View all URLs</a></p>
     </div>

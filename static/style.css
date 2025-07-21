@@ -14,13 +14,13 @@ body {
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
     width: 90%;
-    max-width: 900px; /* Increased for new column */
+    max-width: 1000px; /* Increased for new column */
     text-align: center;
 }
 h1 {
     color: #333;
 }
-input[type="url"] {
+input[type="url"], input[type="number"] {
     width: 80%;
     padding: 10px;
     margin: 10px 0;

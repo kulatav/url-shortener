@@ -17,7 +17,8 @@ def init_db():
                   original_url TEXT NOT NULL,
                   short_code TEXT NOT NULL UNIQUE,
                   clicks INTEGER DEFAULT 0,
-                  created_at TEXT)''')
+                  created_at TEXT,
+                  expiration_days INTEGER DEFAULT 30)''')
     conn.commit()
     conn.close()
 
@@ -31,9 +32,18 @@ def generate_short_code(length=6):
 def index():
     if request.method == 'POST':
         original_url = request.form['url']
+        expiration_days = request.form.get('expiration_days', '30')
         # Validate URL
         if not validators.url(original_url):
             flash('Invalid URL. Please enter a valid URL.', 'error')
+            return render_template('index.html')
+        # Validate expiration days
+        try:
+            expiration_days = int(expiration_days)
+            if not 1 <= expiration_days <= 90:
+                raise ValueError
+        except ValueError:
+            flash('Expiration days must be a number between 1 and 90.', 'error')
             return render_template('index.html')
         
         conn = sqlite3.connect('shortener.db')
@@ -52,13 +62,13 @@ def index():
                 if not c.fetchone():
                     break
                 short_code = generate_short_code()
-            c.execute('INSERT INTO urls (original_url, short_code, clicks, created_at) VALUES (?, ?, 0, ?)',
-                      (original_url, short_code, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+            c.execute('INSERT INTO urls (original_url, short_code, clicks, created_at, expiration_days) VALUES (?, ?, 0, ?, ?)',
+                      (original_url, short_code, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), expiration_days))
             conn.commit()
         
         conn.close()
         short_url = url_for('redirect_url', short_code=short_code, _external=True)
-        return render_template('index.html', short_url=short_url)
+        return render_template('index.html', short_url=short_url, expiration_days=expiration_days)
     
     return render_template('index.html')
 
@@ -67,13 +77,13 @@ def index():
 def redirect_url(short_code):
     conn = sqlite3.connect('shortener.db')
     c = conn.cursor()
-    c.execute('SELECT original_url, created_at FROM urls WHERE short_code = ?', (short_code,))
+    c.execute('SELECT original_url, created_at, expiration_days FROM urls WHERE short_code = ?', (short_code,))
     result = c.fetchone()
     if result:
-        original_url, created_at = result
-        # Check if URL is expired (30 days)
+        original_url, created_at, expiration_days = result
+        # Check if URL is expired
         created_time = datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S')
-        if datetime.now() - created_time > timedelta(days=30):
+        if datetime.now() - created_time > timedelta(days=expiration_days):
             conn.close()
             flash('This URL has expired.', 'error')
             return redirect(url_for('index'))
@@ -91,13 +101,13 @@ def redirect_url(short_code):
 def admin():
     conn = sqlite3.connect('shortener.db')
     c = conn.cursor()
-    c.execute('SELECT original_url, short_code, clicks, created_at FROM urls')
+    c.execute('SELECT original_url, short_code, clicks, created_at, expiration_days FROM urls')
     urls = c.fetchall()
     # Add expiration status
     urls_with_status = [
-        (original_url, short_code, clicks, created_at,
-         'Expired' if datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S') < datetime.now() - timedelta(days=30) else 'Active')
-        for original_url, short_code, clicks, created_at in urls
+        (original_url, short_code, clicks, created_at, expiration_days,
+         'Expired' if datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S') < datetime.now() - timedelta(days=expiration_days) else 'Active')
+        for original_url, short_code, clicks, created_at, expiration_days in urls
     ]
     conn.close()
     return render_template('admin.html', urls=urls_with_status)
