@@ -19,6 +19,12 @@ def init_db():
                   clicks INTEGER DEFAULT 0,
                   created_at TEXT,
                   expiration_days INTEGER DEFAULT 30)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS visitors
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  short_code TEXT NOT NULL,
+                  visitor_ip TEXT NOT NULL,
+                  UNIQUE(short_code, visitor_ip),
+                  FOREIGN KEY (short_code) REFERENCES urls (short_code))''')
     conn.commit()
     conn.close()
 
@@ -87,6 +93,9 @@ def redirect_url(short_code):
             conn.close()
             flash('This URL has expired.', 'error')
             return redirect(url_for('index'))
+        # Track unique visitor
+        visitor_ip = request.remote_addr
+        c.execute('INSERT OR IGNORE INTO visitors (short_code, visitor_ip) VALUES (?, ?)', (short_code, visitor_ip))
         c.execute('UPDATE urls SET clicks = clicks + 1 WHERE short_code = ?', (short_code,))
         conn.commit()
         conn.close()
@@ -101,16 +110,13 @@ def redirect_url(short_code):
 def admin():
     conn = sqlite3.connect('shortener.db')
     c = conn.cursor()
-    c.execute('SELECT original_url, short_code, clicks, created_at, expiration_days FROM urls')
+    c.execute('''SELECT u.original_url, u.short_code, u.clicks, u.created_at, u.expiration_days,
+                        (SELECT COUNT(*) FROM visitors v WHERE v.short_code = u.short_code) as unique_visitors,
+                        CASE WHEN datetime(u.created_at) < datetime('now', '-' || u.expiration_days || ' days') THEN 'Expired' ELSE 'Active' END as status
+                 FROM urls u''')
     urls = c.fetchall()
-    # Add expiration status
-    urls_with_status = [
-        (original_url, short_code, clicks, created_at, expiration_days,
-         'Expired' if datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S') < datetime.now() - timedelta(days=expiration_days) else 'Active')
-        for original_url, short_code, clicks, created_at, expiration_days in urls
-    ]
     conn.close()
-    return render_template('admin.html', urls=urls_with_status)
+    return render_template('admin.html', urls=urls)
 
 if __name__ == '__main__':
     init_db()
