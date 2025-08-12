@@ -23,6 +23,7 @@ def init_db():
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   short_code TEXT NOT NULL,
                   visitor_ip TEXT NOT NULL,
+                  last_visit TEXT,
                   UNIQUE(short_code, visitor_ip),
                   FOREIGN KEY (short_code) REFERENCES urls (short_code))''')
     conn.commit()
@@ -93,9 +94,11 @@ def redirect_url(short_code):
             conn.close()
             flash('This URL has expired.', 'error')
             return redirect(url_for('index'))
-        # Track unique visitor
+        # Track unique visitor and update last_visit
         visitor_ip = request.remote_addr
-        c.execute('INSERT OR IGNORE INTO visitors (short_code, visitor_ip) VALUES (?, ?)', (short_code, visitor_ip))
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        c.execute('INSERT OR REPLACE INTO visitors (short_code, visitor_ip, last_visit) VALUES (?, ?, ?)',
+                  (short_code, visitor_ip, current_time))
         c.execute('UPDATE urls SET clicks = clicks + 1 WHERE short_code = ?', (short_code,))
         conn.commit()
         conn.close()
@@ -111,9 +114,12 @@ def admin():
     conn = sqlite3.connect('shortener.db')
     c = conn.cursor()
     c.execute('''SELECT u.original_url, u.short_code, u.clicks, u.created_at, u.expiration_days,
-                        (SELECT COUNT(*) FROM visitors v WHERE v.short_code = u.short_code) as unique_visitors,
+                        COUNT(v.id) as unique_visitors,
+                        MAX(v.last_visit) as last_visit_time,
                         CASE WHEN datetime(u.created_at) < datetime('now', '-' || u.expiration_days || ' days') THEN 'Expired' ELSE 'Active' END as status
-                 FROM urls u''')
+                 FROM urls u
+                 LEFT JOIN visitors v ON u.short_code = v.short_code
+                 GROUP BY u.short_code''')
     urls = c.fetchall()
     conn.close()
     return render_template('admin.html', urls=urls)
