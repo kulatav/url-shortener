@@ -111,18 +111,22 @@ def redirect_url(short_code):
 # Admin view to list all URLs
 @app.route('/admin')
 def admin():
+    search = request.args.get('search', '')
     conn = sqlite3.connect('shortener.db')
     c = conn.cursor()
-    c.execute('''SELECT u.original_url, u.short_code, u.clicks, u.created_at, u.expiration_days,
-                        COUNT(v.id) as unique_visitors,
-                        MAX(v.last_visit) as last_visit_time,
-                        CASE WHEN datetime(u.created_at) < datetime('now', '-' || u.expiration_days || ' days') THEN 'Expired' ELSE 'Active' END as status
-                 FROM urls u
-                 LEFT JOIN visitors v ON u.short_code = v.short_code
-                 GROUP BY u.short_code''')
+    query = '''SELECT u.original_url, u.short_code, u.clicks, u.created_at, u.expiration_days,
+                      COUNT(v.id) as unique_visitors,
+                      MAX(v.last_visit) as last_visit_time,
+                      CASE WHEN datetime(u.created_at) < datetime('now', '-' || u.expiration_days || ' days') THEN 'Expired' ELSE 'Active' END as status
+               FROM urls u
+               LEFT JOIN visitors v ON u.short_code = v.short_code
+               WHERE u.original_url LIKE ? OR u.short_code LIKE ?
+               GROUP BY u.short_code'''
+    like_query = f"%{search}%"
+    c.execute(query, (like_query, like_query))
     urls = c.fetchall()
     conn.close()
-    return render_template('admin.html', urls=urls)
+    return render_template('admin.html', urls=urls, search=search)
 
 if __name__ == '__main__':
     init_db()
