@@ -47,15 +47,22 @@ table {
     margin-top: 20px;
 }
 .table-wrapper {
-    overflow-x: auto; /* Adds horizontal scroll if table overflows */
-    margin: 0 -20px; /* Match container padding to extend full width inside */
-    padding: 0 20px; /* Restore padding inside wrapper */
+    overflow-x: auto;
+    margin: 0 -20px;
+    padding: 0 20px;
 }
 th, td {
     border: 1px solid #ddd;
     padding: 8px;
     text-align: left;
-    white-space: nowrap; /* Prevents text wrapping in cells */
+    white-space: nowrap;
+}
+th a {
+    color: #007bff;
+    text-decoration: none;
+}
+th a:hover {
+    text-decoration: underline;
 }
 th {
     background-color: #f2f2f2;

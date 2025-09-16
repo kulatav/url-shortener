@@ -112,6 +112,8 @@ def redirect_url(short_code):
 @app.route('/admin')
 def admin():
     search = request.args.get('search', '')
+    sort = request.args.get('sort', 'created_at')  # Default sort by created_at
+    order = request.args.get('order', 'desc')      # Default descending order
     conn = sqlite3.connect('shortener.db')
     c = conn.cursor()
     query = '''SELECT u.original_url, u.short_code, u.clicks, u.created_at, u.expiration_days,
@@ -121,12 +123,13 @@ def admin():
                FROM urls u
                LEFT JOIN visitors v ON u.short_code = v.short_code
                WHERE u.original_url LIKE ? OR u.short_code LIKE ?
-               GROUP BY u.short_code'''
+               GROUP BY u.short_code
+               ORDER BY {sort} {order}'''.format(sort=sort, order=order.upper())
     like_query = f"%{search}%"
     c.execute(query, (like_query, like_query))
     urls = c.fetchall()
     conn.close()
-    return render_template('admin.html', urls=urls, search=search)
+    return render_template('admin.html', urls=urls, search=search, sort=sort, order=order)
 
 if __name__ == '__main__':
     init_db()
