@@ -57,13 +57,6 @@ th, td {
     text-align: left;
     white-space: nowrap;
 }
-th a {
-    color: #007bff;
-    text-decoration: none;
-}
-th a:hover {
-    text-decoration: underline;
-}
 th {
     background-color: #f2f2f2;
 }
@@ -82,4 +75,14 @@ a:hover {
 }
 .search-form {
     margin-bottom: 20px;
+}
+.pagination {
+    margin-top: 20px;
+}
+.pagination a {
+    margin: 0 10px;
+    color: #007bff;
+}
+.pagination span {
+    color: #333;
 }

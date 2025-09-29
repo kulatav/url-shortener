@@ -112,10 +112,24 @@ def redirect_url(short_code):
 @app.route('/admin')
 def admin():
     search = request.args.get('search', '')
-    sort = request.args.get('sort', 'created_at')  # Default sort by created_at
-    order = request.args.get('order', 'desc')      # Default descending order
+    sort = request.args.get('sort', 'created_at')
+    order = request.args.get('order', 'desc')
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # Number of URLs per page
+    offset = (page - 1) * per_page
+
     conn = sqlite3.connect('shortener.db')
     c = conn.cursor()
+    
+    # Count total URLs for pagination
+    count_query = '''SELECT COUNT(*) FROM urls u
+                     WHERE u.original_url LIKE ? OR u.short_code LIKE ?'''
+    like_query = f"%{search}%"
+    c.execute(count_query, (like_query, like_query))
+    total_urls = c.fetchone()[0]
+    total_pages = (total_urls // per_page) + (1 if total_urls % per_page > 0 else 0)
+    
+    # Fetch paginated URLs
     query = '''SELECT u.original_url, u.short_code, u.clicks, u.created_at, u.expiration_days,
                       COUNT(v.id) as unique_visitors,
                       MAX(v.last_visit) as last_visit_time,
@@ -124,12 +138,13 @@ def admin():
                LEFT JOIN visitors v ON u.short_code = v.short_code
                WHERE u.original_url LIKE ? OR u.short_code LIKE ?
                GROUP BY u.short_code
-               ORDER BY {sort} {order}'''.format(sort=sort, order=order.upper())
-    like_query = f"%{search}%"
-    c.execute(query, (like_query, like_query))
+               ORDER BY {sort} {order}
+               LIMIT ? OFFSET ?'''.format(sort=sort, order=order.upper())
+    c.execute(query, (like_query, like_query, per_page, offset))
     urls = c.fetchall()
     conn.close()
-    return render_template('admin.html', urls=urls, search=search, sort=sort, order=order)
+    
+    return render_template('admin.html', urls=urls, search=search, sort=sort, order=order, page=page, total_pages=total_pages, per_page=per_page)
 
 if __name__ == '__main__':
     init_db()
