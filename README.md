@@ -6,7 +6,7 @@ A simple Python web application built with Flask to shorten URLs and redirect to
 - Shorten long URLs via a web form with custom expiration periods (1-90 days).
 - Redirect from short URLs to original URLs (expires after specified period).
 - Track total clicks, unique visitors, and last visit time per URL.
-- View, search, sort, and paginate shortened URLs with click counts, unique visitors, last visit time, creation timestamps, expiration periods, and status in an admin page with improved responsive layout.
+- View, search, sort, and paginate shortened URLs by clicks, unique visitors, creation date, expiration days, or last visit time, with configurable items per page (5-50), click counts, unique visitors, last visit time, creation timestamps, expiration periods, and status in an admin page with improved responsive layout.
 - Input validation for URLs and expiration days.
 - Persistent storage using SQLite.
 
