@@ -112,24 +112,26 @@ def redirect_url(short_code):
 @app.route('/admin')
 def admin():
     search = request.args.get('search', '')
-    sort = request.args.get('sort', 'created_at')
-    order = request.args.get('order', 'desc')
-    page = request.args.get('page', 1, type=int)
-    per_page = 10  # Number of URLs per page
-    offset = (page - 1) * per_page
+    sort = request.args.get('sort', 'created_at')  # Default sort by created_at
+    order = request.args.get('order', 'desc')      # Default descending order
+    page = request.args.get('page', 1, type=int)   # Default to page 1
+    per_page = request.args.get('per_page', 10, type=int)  # Default 10 per page
+    # Validate per_page (5-50)
+    per_page = max(5, min(50, per_page))
+    offset = (page - 1) * per_page                # Calculate offset
 
     conn = sqlite3.connect('shortener.db')
     c = conn.cursor()
-    
-    # Count total URLs for pagination
-    count_query = '''SELECT COUNT(*) FROM urls u
+    # Count total rows for pagination
+    count_query = '''SELECT COUNT(DISTINCT u.short_code)
+                     FROM urls u
                      WHERE u.original_url LIKE ? OR u.short_code LIKE ?'''
     like_query = f"%{search}%"
     c.execute(count_query, (like_query, like_query))
-    total_urls = c.fetchone()[0]
-    total_pages = (total_urls // per_page) + (1 if total_urls % per_page > 0 else 0)
-    
-    # Fetch paginated URLs
+    total_items = c.fetchone()[0]
+    total_pages = (total_items + per_page - 1) // per_page  # Ceiling division
+
+    # Fetch paginated data
     query = '''SELECT u.original_url, u.short_code, u.clicks, u.created_at, u.expiration_days,
                       COUNT(v.id) as unique_visitors,
                       MAX(v.last_visit) as last_visit_time,
@@ -143,7 +145,7 @@ def admin():
     c.execute(query, (like_query, like_query, per_page, offset))
     urls = c.fetchall()
     conn.close()
-    
+
     return render_template('admin.html', urls=urls, search=search, sort=sort, order=order, page=page, total_pages=total_pages, per_page=per_page)
 
 if __name__ == '__main__':

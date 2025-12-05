@@ -11,21 +11,25 @@
         <a href="{{ url_for('index') }}">Back to Home</a>
         <form method="GET" action="{{ url_for('admin') }}" class="search-form">
             <input type="text" name="search" placeholder="Search by URL or short code" value="{{ search }}">
-            <input type="hidden" name="sort" value="{{ sort }}">
-            <input type="hidden" name="order" value="{{ order }}">
+            <select name="per_page">
+                <option value="5" {% if per_page == 5 %}selected{% endif %}>5 per page</option>
+                <option value="10" {% if per_page == 10 %}selected{% endif %}>10 per page</option>
+                <option value="25" {% if per_page == 25 %}selected{% endif %}>25 per page</option>
+                <option value="50" {% if per_page == 50 %}selected{% endif %}>50 per page</option>
+            </select>
             <button type="submit">Search</button>
         </form>
         <div class="table-wrapper">
             {% if urls %}
                 <table>
                     <tr>
-                        <th><a href="{{ url_for('admin', search=search, sort='original_url', order='asc' if sort == 'original_url' and order == 'desc' else 'desc', page=page) }}">Original URL</a></th>
-                        <th><a href="{{ url_for('admin', search=search, sort='short_code', order='asc' if sort == 'short_code' and order == 'desc' else 'desc', page=page) }}">Short URL</a></th>
-                        <th><a href="{{ url_for('admin', search=search, sort='clicks', order='asc' if sort == 'clicks' and order == 'desc' else 'desc', page=page) }}">Clicks</a></th>
-                        <th><a href="{{ url_for('admin', search=search, sort='unique_visitors', order='asc' if sort == 'unique_visitors' and order == 'desc' else 'desc', page=page) }}">Unique Visitors</a></th>
-                        <th><a href="{{ url_for('admin', search=search, sort='created_at', order='asc' if sort == 'created_at' and order == 'desc' else 'desc', page=page) }}">Created At</a></th>
-                        <th><a href="{{ url_for('admin', search=search, sort='expiration_days', order='asc' if sort == 'expiration_days' and order == 'desc' else 'desc', page=page) }}">Expiration Days</a></th>
-                        <th><a href="{{ url_for('admin', search=search, sort='last_visit_time', order='asc' if sort == 'last_visit_time' and order == 'desc' else 'desc', page=page) }}">Last Visit</a></th>
+                        <th><a href="{{ url_for('admin', search=search, sort='original_url', order='asc' if sort != 'original_url' or order != 'asc' else 'desc', page=page, per_page=per_page) }}">Original URL</a></th>
+                        <th><a href="{{ url_for('admin', search=search, sort='short_code', order='asc' if sort != 'short_code' or order != 'asc' else 'desc', page=page, per_page=per_page) }}">Short URL</a></th>
+                        <th><a href="{{ url_for('admin', search=search, sort='clicks', order='asc' if sort != 'clicks' or order != 'asc' else 'desc', page=page, per_page=per_page) }}">Clicks</a></th>
+                        <th><a href="{{ url_for('admin', search=search, sort='unique_visitors', order='asc' if sort != 'unique_visitors' or order != 'asc' else 'desc', page=page, per_page=per_page) }}">Unique Visitors</a></th>
+                        <th><a href="{{ url_for('admin', search=search, sort='created_at', order='asc' if sort != 'created_at' or order != 'asc' else 'desc', page=page, per_page=per_page) }}">Created At</a></th>
+                        <th><a href="{{ url_for('admin', search=search, sort='expiration_days', order='asc' if sort != 'expiration_days' or order != 'asc' else 'desc', page=page, per_page=per_page) }}">Expiration Days</a></th>
+                        <th><a href="{{ url_for('admin', search=search, sort='last_visit_time', order='asc' if sort != 'last_visit_time' or order != 'asc' else 'desc', page=page, per_page=per_page) }}">Last Visit</a></th>
                         <th>Status</th>
                     </tr>
                     {% for original_url, short_code, clicks, unique_visitors, created_at, expiration_days, last_visit_time, status in urls %}
@@ -42,12 +46,11 @@
                     {% endfor %}
                 </table>
                 <div class="pagination">
-                    {% if page > 1 %}
-                        <a href="{{ url_for('admin', search=search, sort=sort, order=order, page=page-1) }}">Previous</a>
-                    {% endif %}
-                    <span>Page {{ page }} of {{ total_pages }}</span>
-                    {% if page < total_pages %}
-                        <a href="{{ url_for('admin', search=search, sort=sort, order=order, page=page+1) }}">Next</a>
+                    {% if total_pages > 1 %}
+                        {% for p in range(1, total_pages + 1) %}
+                            <a href="{{ url_for('admin', search=search, sort=sort, order=order, page=p, per_page=per_page) }}"
+                               class="{{ 'active' if p == page else '' }}">{{ p }}</a>
+                        {% endfor %}
                     {% endif %}
                 </div>
             {% else %}
